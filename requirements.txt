@@ -1,0 +1,6 @@
+matplotlib
+numpy
+POT
+torch
+torchdyn
+torchcfm

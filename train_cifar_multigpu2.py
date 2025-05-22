@@ -208,7 +208,7 @@ def train_loop(rank, world_size, argv):
         transformer_nlayers=FLAGS.transformer_nlayers,
     ).to(device)
 
-    net_model = DDP(net_model, device_ids=[rank], output_device=rank, find_unused_parameters=True)
+    net_model = DDP(net_model, device_ids=[rank], output_device=rank, find_unused_parameters=False)
 
     # EMA model (not DDP)
     ema_model = copy.deepcopy(net_model.module).to(device)

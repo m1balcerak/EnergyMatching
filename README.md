@@ -45,3 +45,12 @@ Evaluation:
 python experiments/cifar10/fid_evaluation_heun.py --resume_ckpt=PATH --output_dir=./sampling_results --use_ema True --time_cutoff 0.9 --epsilon_max 0.01
 ```
 No CIFAR‑10 checkpoint is included because the file is large, so training from scratch is required or you may provide your own checkpoint.
+
+### ImageNet32 training
+Train an ImageNet32 model with:
+```bash
+torchrun --nproc_per_node=8 experiments/imagenet32/train_imagenet_multigpu.py \
+    --lr 6e-4 --batch_size 128
+```
+The dataset path defaults to `./data/imagenet32` or can be overridden with the
+`IMAGENET32_PATH` environment variable.

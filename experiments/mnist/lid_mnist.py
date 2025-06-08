@@ -15,7 +15,7 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 
 # Your MNIST model
-from model_mnist import Network_2M_MNIST28x28  # Adjust to match your filename and class name
+from model import Network_2M_MNIST28x28  # Adjust to match your filename and class name
 
 
 ################################################################################

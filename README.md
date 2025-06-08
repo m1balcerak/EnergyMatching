@@ -15,12 +15,18 @@ Energy Matching unifies flow matching and energy-based models in a single time-i
 
 ## Running the examples
 - A simple 2D playground is provided in `experiments/toy2d/tutorial_2D.ipynb`.
-- A checkpoint for MNIST is provided under `experiments/lid_mnist/assets/`. The CIFAR‑10 checkpoint is too large to include but can be trained using the commands below.
+- A checkpoint for MNIST is provided under `experiments/mnist/assets/`. The CIFAR‑10 checkpoint is too large to include but can be trained using the commands below.
 
 ### LID on MNIST
 Evaluate the local intrinsic dimension on MNIST by running:
 ```bash
-python experiments/lid_mnist/lid_mnist.py
+python experiments/mnist/lid_mnist.py
+```
+
+### Train the MNIST model
+You can also train the MNIST energy model yourself. A minimal command looks like:
+```bash
+python experiments/mnist/train_mnist.py --lr 1e-4 --batch_size 128
 ```
 
 ### Protein inverse design

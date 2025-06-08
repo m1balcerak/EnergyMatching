@@ -2,6 +2,7 @@
 
 import os
 import io
+from pathlib import Path
 import numpy as np
 import torch
 from torch.autograd.functional import hessian
@@ -84,7 +85,7 @@ def compute_correlations_for_thresholds(results, thresholds):
 ################################################################################
 def main():
     # Arguments / settings
-    model_path = "./assets/mnist_model.pth"
+    model_path = Path(__file__).resolve().parent / "assets" / "mnist_model.pth"
     thresholds = np.linspace(0.1, 40, 50)
     num_samples_select = 0
     num_samples_test = 4096
@@ -98,14 +99,14 @@ def main():
     np.random.seed(seed)
 
     # Check model file
-    if not os.path.exists(model_path):
+    if not model_path.exists():
         raise FileNotFoundError(f"Model file '{model_path}' not found.")
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Load model
     model = Network_2M_MNIST28x28().to(device)
-    model.load_state_dict(torch.load(model_path, map_location=device))
+    model.load_state_dict(torch.load(str(model_path), map_location=device))
     model.eval()
 
     # MNIST transform: [0,1] -> [-1,1]

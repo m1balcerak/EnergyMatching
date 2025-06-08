@@ -6,7 +6,8 @@ import numpy as np
 
 from pathlib import Path
 import sys
-sys.path.append(str(Path(__file__).resolve().parents[1]))
+# Add CIFAR-10 utilities to path for plot_epsilon
+sys.path.append(str(Path(__file__).resolve().parents[1] / "cifar10"))
 
 from absl import app, flags
 import config  # assumes flags for dropout and output_scale are defined here

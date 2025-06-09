@@ -6,8 +6,8 @@ import numpy as np
 
 from pathlib import Path
 import sys
-# Add CIFAR-10 utilities to path for plot_epsilon
-sys.path.append(str(Path(__file__).resolve().parents[1] / "cifar10"))
+# Add repo root to path for plot_epsilon
+sys.path.append(str(Path(__file__).resolve().parents[1].parent))
 
 from absl import app, flags
 import config  # assumes flags for dropout and output_scale are defined here
@@ -15,7 +15,7 @@ config.define_flags()
 FLAGS = flags.FLAGS
 
 from utils_proteins import Encoder, check_duplicates
-from utils_train import plot_epsilon
+from utils_cifar_imagenet import plot_epsilon
 from model_proteins import Unet1DModelWrapper, VAE
 from oracle import eval, BaseCNN
 

@@ -4,6 +4,7 @@
 # are 50/50 split between real and noise initialization or all noise.
 ##############################################################################
 import os
+import sys
 import time
 import copy
 import datetime
@@ -18,13 +19,17 @@ from torch.utils.data.distributed import DistributedSampler
 from absl import app, flags, logging
 import config_multigpu as config  # your config file
 
+sys.path.append(
+    os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+)
+
 config.define_flags()  # register all the flags
 FLAGS = flags.FLAGS
 
 # 2) Import your usual goodies
 from torchvision import datasets, transforms
 
-from utils_train import (
+from utils_cifar_imagenet import (
     create_timestamped_dir,
     generate_samples,
     flow_weight,
@@ -36,8 +41,6 @@ from utils_train import (
     sde_euler_maruyama
 )
 
-# Import single-GPU FID
-from utils_fid import compute_fid_for_times
 
 # 3) Import the EBM model (ViT version)
 from network_transformer_vit import EBViTModelWrapper
@@ -103,13 +106,17 @@ def forward_all(model,
 
             x_neg_init[:half_b] = x_real_cd[:half_b]
             x_neg_init[half_b:] = torch.randn_like(x_neg_init[half_b:])
+            at_data_mask = torch.zeros(B, dtype=torch.bool, device=device)
+            at_data_mask[:half_b] = True
         else:
             # Original approach: all negative samples from noise
             x_neg_init = torch.randn_like(x_real_cd)
+            at_data_mask = torch.zeros(x_real_cd.size(0), dtype=torch.bool, device=device)
 
         x_neg = gibbs_sampling_time_sweep(
             x_init=x_neg_init,
             model=model.module,
+            at_data_mask=at_data_mask,
             n_steps=n_gibbs,
             dt=dt_gibbs
         )
@@ -300,49 +307,6 @@ def train_loop(rank, world_size, argv):
                 time_cutoff=FLAGS.time_cutoff
             )
 
-            # -----------------------------------------------------------------
-            # If cd_loss < -cd_loss_threshold, increase difficulty
-            # (increase n_gibbs by 10%, decrease dt_gibbs by 10%)
-            # -----------------------------------------------------------------
-            cd_val = cd_loss.item()
-            if rank == 0 and cd_val < -FLAGS.cd_loss_threshold:
-                old_n_gibbs = FLAGS.n_gibbs
-                old_dt_gibbs = FLAGS.dt_gibbs
-
-                # Propose new values
-                proposed_n_gibbs = math.ceil(old_n_gibbs * 1.10)
-                proposed_dt_gibbs = old_dt_gibbs * 0.90
-
-                # Clamp values
-                new_n_gibbs = min(proposed_n_gibbs, 400)
-                new_dt_gibbs = max(proposed_dt_gibbs, 0.01)
-
-                # Check if any update actually occurs
-                if new_n_gibbs != old_n_gibbs or abs(new_dt_gibbs - old_dt_gibbs) > 1e-12:
-                    # Apply changes
-                    FLAGS.n_gibbs = new_n_gibbs
-                    FLAGS.dt_gibbs = new_dt_gibbs
-                    logging.info(
-                        f"cd_loss={cd_val:.4f} < -{FLAGS.cd_loss_threshold:.4f} => "
-                        f"Increasing difficulty: n_gibbs {old_n_gibbs} -> {new_n_gibbs}, "
-                        f"dt_gibbs {old_dt_gibbs:.4f} -> {new_dt_gibbs:.4f}"
-                    )
-                else:
-                    # We’re at the boundary, no changes applied
-                    logging.info(
-                        f"cd_loss={cd_val:.4f} < -{FLAGS.cd_loss_threshold:.4f} => "
-                        f"Already at boundary (n_gibbs={old_n_gibbs}, dt_gibbs={old_dt_gibbs}); no change."
-                    )
-
-            dist.barrier()  # synchronize before broadcast
-            # Broadcast new n_gibbs, dt_gibbs to all ranks
-            n_gibbs_tensor = torch.tensor(FLAGS.n_gibbs, dtype=torch.int, device=device)
-            dt_gibbs_tensor = torch.tensor(FLAGS.dt_gibbs, dtype=torch.float, device=device)
-            dist.broadcast(n_gibbs_tensor, src=0)
-            dist.broadcast(dt_gibbs_tensor, src=0)
-            FLAGS.n_gibbs = int(n_gibbs_tensor.item())
-            FLAGS.dt_gibbs = float(dt_gibbs_tensor.item())
-            # -----------------------------------------------------------------
 
             total_loss.backward()
             torch.nn.utils.clip_grad_norm_(net_model.parameters(), FLAGS.grad_clip)
@@ -368,32 +332,6 @@ def train_loop(rank, world_size, argv):
                 )
 
             # -------------------------------------------------
-            # Single-GPU FID on rank=0 (others wait)
-            # -------------------------------------------------
-            if (
-                FLAGS.fid_freq > 0
-                and step > 0
-                and step % FLAGS.fid_freq == 0
-                and step != start_step
-            ):
-                if rank == 0:
-                    logging.info(f"[Rank 0] Computing single-GPU FID at step={step} ...")
-                    fid_times = [float(t_str) for t_str in FLAGS.fid_times]
-                    with torch.no_grad():
-                        fid_scores = compute_fid_for_times(
-                            model=ema_model,
-                            device=device,
-                            times=fid_times,
-                            num_gen=FLAGS.fid_num_gen,
-                            batch_size=FLAGS.batch_size,
-                            dt=FLAGS.fid_dt
-                        )
-                    for T, fid_val in fid_scores.items():
-                        logging.info(f"[Rank 0] FID at T={T}: {fid_val:.4f}")
-
-                dist.barrier()  # block so all ranks stay in sync
-
-            # -------------------------------------------------
             # Save checkpoint occasionally (rank=0)
             # -------------------------------------------------
             if rank == 0 and FLAGS.save_step > 0 and step % FLAGS.save_step == 0 and step > 0:
@@ -406,9 +344,11 @@ def train_loop(rank, world_size, argv):
                 real_batch = next(datalooper).to(device)[:64]  # up to 64 for an 8x8 grid
                 # (b) negative samples via MCMC (time sweep)
                 x_neg_init = torch.randn_like(real_batch)
+                at_data_mask = torch.zeros(real_batch.size(0), dtype=torch.bool, device=device)
                 x_neg = gibbs_sampling_time_sweep(
                     x_init=x_neg_init,
                     model=net_model.module,
+                    at_data_mask=at_data_mask,
                     n_steps=FLAGS.n_gibbs,
                     dt=FLAGS.dt_gibbs
                 )

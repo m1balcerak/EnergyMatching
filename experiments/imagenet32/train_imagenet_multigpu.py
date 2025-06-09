@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 import copy
 
@@ -14,7 +15,11 @@ FLAGS = flags.FLAGS
 
 from torchvision import transforms
 
-from utils_train import (
+sys.path.append(
+    os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+)
+
+from utils_cifar_imagenet import (
     create_timestamped_dir,
     generate_samples,
     gibbs_sampling_time_sweep,

@@ -11,6 +11,7 @@
 #######################################################################
 
 import os
+import sys
 import torch
 
 # absl flags
@@ -33,7 +34,11 @@ from torchmetrics.image.fid import FrechetInceptionDistance
 
 # Our EBM + utilities
 from network_transformer_vit import EBViTModelWrapper
-from utils_train import (
+sys.path.append(
+    os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+)
+
+from utils_cifar_imagenet import (
     create_timestamped_dir,
     plot_epsilon
 )

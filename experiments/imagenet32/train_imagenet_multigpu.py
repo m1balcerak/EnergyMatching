@@ -201,8 +201,11 @@ def train_loop(rank, world_size, argv):
         transformer_nlayers=FLAGS.transformer_nlayers,
     ).to(device)
 
+    # Enable find_unused_parameters only when CD loss is disabled. With CD loss
+    # (lambda_cd > 0) all parameters participate in the backward pass.
+    find_unused = False if FLAGS.lambda_cd > 0.0 else True
     net_model = DDP(net_model, device_ids=[rank],
-                    output_device=rank, find_unused_parameters=False)
+                    output_device=rank, find_unused_parameters=find_unused)
 
     ema_model = copy.deepcopy(net_model.module).to(device)
 

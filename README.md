@@ -1,5 +1,8 @@
 # Energy Matching
 <img align="right" src="EM_2D.png" width="300" alt="Energy Matching Illustration" />
+**Version 0.1** – This is the official repository for the paper
+[Energy Matching](https://arxiv.org/abs/2504.10612). Both the code and the
+paper may change as the manuscript is undergoing revision.
 Energy Matching unifies flow matching and energy-based models in a single time-independent scalar field, enabling efficient transport between the source and target distributions while retaining explicit likelihood information for flexible, high-quality generation.
 
 ### Setup (CUDA)
@@ -17,26 +20,6 @@ Energy Matching unifies flow matching and energy-based models in a single time-i
 ## Running the examples
 - A simple 2D playground is provided in `experiments/toy2d/tutorial_2D.ipynb`.
 - A checkpoint for MNIST is provided under `experiments/mnist/assets/`. The CIFAR‑10 checkpoint is too large to include but can be trained using the commands below.
-
-### LID on MNIST
-Evaluate the local intrinsic dimension on MNIST by running:
-```bash
-python experiments/mnist/lid_mnist.py
-```
-
-### Train the MNIST model
-You can also train the MNIST energy model yourself. A minimal command looks like:
-```bash
-python experiments/mnist/train_mnist.py --lr 1e-4 --batch_size 128
-```
-
-### Protein inverse design
-Train the model and sample sequences with:
-```bash
-python experiments/proteins/train_proteins_latent.py
-python experiments/proteins/sampling_latent.py
-```
-The VAE used for the continuous latent space is already provided.
 
 ### CIFAR‑10 training and evaluation
 Initial training:
@@ -60,12 +43,6 @@ The dataset path defaults to `./data` or can be overridden with the
 `CIFAR10_PATH` environment variable.
 No CIFAR‑10 checkpoint is included because the file is large, so training from scratch is required or you may provide your own checkpoint.
 
-### LID on CIFAR‑10
-Run the local intrinsic dimension experiment with:
-```bash
-python experiments/cifar10/lid_cifar.py --chunk_size 64 --resume_ckpt=/path/to/checkpoint.pt --output_dir results_lid_merged --num_samples_test 1024 --num_samples_select 64 "$@"
-```
-
 ### ImageNet32 training
 Train an ImageNet32 model with:
 ```bash
@@ -86,4 +63,29 @@ torchrun --nproc_per_node=2 experiments/imagenet32/fid_imagenet_heun_multigpu.py
     --epsilon_max 0.01 \
     --batch_size 128 \
     --dt_gibbs 0.005
+
+### Protein inverse design
+Train the model and sample sequences with:
+```bash
+python experiments/proteins/train_proteins_latent.py
+python experiments/proteins/sampling_latent.py
+```
+The VAE used for the continuous latent space is already provided.
+
+### LID on MNIST
+Evaluate the local intrinsic dimension on MNIST by running:
+```bash
+python experiments/mnist/lid_mnist.py
+```
+
+### Train the MNIST model
+You can also train the MNIST energy model yourself. A minimal command looks like:
+```bash
+python experiments/mnist/train_mnist.py --lr 1e-4 --batch_size 128
+```
+
+### LID on CIFAR‑10
+Run the local intrinsic dimension experiment with:
+```bash
+python experiments/cifar10/lid_cifar.py --chunk_size 64 --resume_ckpt=/path/to/checkpoint.pt --output_dir results_lid_merged --num_samples_test 64 --num_samples_select 64 "$@"
 ```

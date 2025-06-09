@@ -46,6 +46,7 @@ def forward_all(model,
                 x_real_cd,
                 lambda_cd,
                 cd_neg_clamp,
+                cd_trim_fraction,
                 n_gibbs,
                 dt_gibbs,
                 epsilon_max):
@@ -53,8 +54,8 @@ def forward_all(model,
     Computes flow_loss and optional CD loss in a single forward pass.
     Uses uniform weighting (1.0) for the flow MSE.
     
-    Now does a one-sided trimmed mean (drop top 20%) on negative energies
-    to stabilize the CD gradient.
+    Optionally discards a fraction of the highest negative energies
+    (cd_trim_fraction) to stabilize the CD gradient.
     
     Returns: (total_loss, flow_loss, cd_loss, pos_energy, neg_energy)
     so we can log energy statistics outside.
@@ -106,13 +107,16 @@ def forward_all(model,
 
         neg_energy = model.module.potential(x_neg, torch.ones_like(t))
 
-        # trimmed-mean on neg energies: drop top 20%
-        B = neg_energy.size(0)
-        k = int(0.25 * B)
-        if k > 0:
-            neg_sorted, _ = neg_energy.sort()    # ascending
-            neg_trimmed = neg_sorted[: B - k]    # drop highest k
-            neg_stat = neg_trimmed.mean()
+        # trimmed-mean on neg energies according to cd_trim_fraction
+        if cd_trim_fraction > 0.0:
+            B = neg_energy.size(0)
+            k = int(cd_trim_fraction * B)
+            if k > 0:
+                neg_sorted, _ = neg_energy.sort()    # ascending
+                neg_trimmed = neg_sorted[: B - k]    # drop highest k
+                neg_stat = neg_trimmed.mean()
+            else:
+                neg_stat = neg_energy.mean()
         else:
             neg_stat = neg_energy.mean()
 
@@ -283,6 +287,7 @@ def train_loop(rank, world_size, argv):
                 x_real_cd=x_real_cd,
                 lambda_cd=FLAGS.lambda_cd,
                 cd_neg_clamp=FLAGS.cd_neg_clamp,
+                cd_trim_fraction=FLAGS.cd_trim_fraction,
                 n_gibbs=FLAGS.n_gibbs,
                 dt_gibbs=FLAGS.dt_gibbs,
                 epsilon_max=FLAGS.epsilon_max

@@ -64,7 +64,7 @@ torchrun --nproc_per_node=2 experiments/imagenet32/fid_imagenet_heun_multigpu.py
     --epsilon_max 0.01 \
     --batch_size 128 \
     --dt_gibbs 0.005
-
+```
 ### Protein inverse design
 Train the model and sample sequences with:
 ```bash

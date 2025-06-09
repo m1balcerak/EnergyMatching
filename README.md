@@ -52,6 +52,12 @@ python experiments/cifar10/fid_evaluation_heun.py --resume_ckpt=PATH --output_di
 ```
 No CIFAR‑10 checkpoint is included because the file is large, so training from scratch is required or you may provide your own checkpoint.
 
+### LID on CIFAR‑10
+Run the local intrinsic dimension experiment with:
+```bash
+python experiments/cifar10/lid_cifar.py --chunk_size 64 --resume_ckpt=/path/to/checkpoint.pt --output_dir results_lid_merged --num_samples_test 1024 --num_samples_select 64 "$@"
+```
+
 ### ImageNet32 training
 Train an ImageNet32 model with:
 ```bash

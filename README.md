@@ -2,7 +2,8 @@
 <img align="right" src="EM_2D.png" width="300" alt="Energy Matching Illustration" />
 
 Energy Matching unifies flow matching and energy-based models in a single time-independent scalar field, enabling efficient transport between the source and target distributions while retaining explicit likelihood information for flexible, high-quality generation.
-**Version 0.1** – This is the official repository for the paper [Energy Matching](https://arxiv.org/abs/2504.10612).
+**Version 0.1** – This is the official repository for the paper [Energy Matching](https://arxiv.org/abs/2504.10612). Both the code and the
+paper may change as the manuscript is undergoing revision.
 
 ### Setup (CUDA)
 1. Create and activate a Python environment (conda example):

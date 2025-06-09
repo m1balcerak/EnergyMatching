@@ -46,10 +46,17 @@ Fine‑tuning with Algorithm 2 (same script):
 ```bash
 torchrun --nproc_per_node=4 experiments/cifar10/train_cifar_multigpu.py --lr 8e-4 --batch_size 64 --resume_ckpt 'path_to_pretrained' --epsilon_max 0.01 --n_gibbs 201 --lambda_cd 1e-4 --time_cutoff 0.9 --ema_decay 0.999 --save_step 100 --dt_gibbs 0.01 --cd_loss_threshold 1.0 --split_negative=True
 ```
-Evaluation:
+Evaluation (multi‑GPU):
 ```bash
-python experiments/cifar10/fid_evaluation_heun.py --resume_ckpt=PATH --output_dir=./sampling_results --use_ema True --time_cutoff 0.9 --epsilon_max 0.01
+torchrun --nproc_per_node=2 experiments/cifar10/fid_cifar_heun_multigpu.py \
+    --resume_ckpt=PATH \
+    --output_dir=./sampling_results \
+    --use_ema True \
+    --time_cutoff 0.9 \
+    --epsilon_max 0.01
 ```
+The dataset path defaults to `./data` or can be overridden with the
+`CIFAR10_PATH` environment variable.
 No CIFAR‑10 checkpoint is included because the file is large, so training from scratch is required or you may provide your own checkpoint.
 
 ### LID on CIFAR‑10

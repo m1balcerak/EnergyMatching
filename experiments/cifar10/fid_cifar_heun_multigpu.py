@@ -1,18 +1,18 @@
 #######################################################################
-# File: fid_evaluation.py
+# File: fid_cifar_heun_multigpu.py
 #
 # Usage example:
-#   python fid_evaluation.py \
+#   torchrun --nproc_per_node=2 fid_cifar_heun_multigpu.py \
 #       --resume_ckpt=/path/to/checkpoint.pt \
 #       --batch_size=64 \
 #       --dt_gibbs=0.01 \
-#       --use_ema=True \
-#       --output_dir=./fid_results
+#       --use_ema=True
 #######################################################################
 
 import os
 import sys
 import torch
+import torch.distributed as dist
 
 # absl flags
 from absl import app, flags, logging
@@ -47,18 +47,35 @@ from utils_cifar_imagenet import (
 from tqdm import tqdm
 
 ##############################################################################
-# 1) CIFAR-10 Data
+# 1) CIFAR-10 Data (distributed)
 ##############################################################################
-def get_cifar10_test_loader(root="./data", batch_size=64, num_workers=4):
-    """
-    Returns a DataLoader for the entire CIFAR-10 set
-    with images in [0,1] float range.
-    """
+from torch.utils.data.distributed import DistributedSampler
+
+
+def get_cifar10_train_loader(batch_size, num_workers, rank, world_size, root=None):
+    """Returns a distributed DataLoader for CIFAR-10 train set."""
+    if root is None:
+        root = os.environ.get("CIFAR10_PATH", "./data")
+
     transform = T.ToTensor()
     dataset = torchvision.datasets.CIFAR10(
         root=root, train=True, download=True, transform=transform
     )
-    loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
+
+    sampler = DistributedSampler(
+        dataset,
+        num_replicas=world_size,
+        rank=rank,
+        shuffle=False,
+    )
+
+    loader = DataLoader(
+        dataset,
+        batch_size=batch_size,
+        num_workers=num_workers,
+        sampler=sampler,
+        drop_last=False,
+    )
     return loader
 
 ##############################################################################
@@ -119,16 +136,29 @@ def solve_sde_heun(model, x, t_start, t_end, dt=0.01):
 ##############################################################################
 def main(argv):
     # ------------------------------------------------------------
-    # 1) Setup + Logging
+    # A) Initialize Distributed
     # ------------------------------------------------------------
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    dist.init_process_group(backend="nccl", init_method="env://")
+    rank = dist.get_rank()
+    world_size = dist.get_world_size()
+    torch.cuda.set_device(rank)
+    device = torch.device(f"cuda:{rank}")
 
-    if not FLAGS.output_dir:
-        FLAGS.output_dir = "./fid_results"
-    savedir = create_timestamped_dir(FLAGS.output_dir, FLAGS.model)
-    logging.get_absl_handler().use_absl_log_file(program_name="fid_eval", log_dir=savedir)
-    logging.set_verbosity(logging.INFO)
-    logging.info(f"Saving results to: {savedir}")
+    # ------------------------------------------------------------
+    # B) Logging / Output
+    # ------------------------------------------------------------
+    if rank == 0:
+        if not FLAGS.output_dir:
+            FLAGS.output_dir = "./sampling_results"
+        savedir = create_timestamped_dir(FLAGS.output_dir, FLAGS.model)
+        logging.get_absl_handler().use_absl_log_file(program_name="fid_cifar10", log_dir=savedir)
+        logging.set_verbosity(logging.INFO)
+        logging.info(f"[Rank 0] Saving logs to: {savedir}")
+    else:
+        savedir = None
+        logging.set_verbosity(logging.ERROR)
+
+    dist.barrier()
 
     # ------------------------------------------------------------
     # 2) Build Model & Load Checkpoint
@@ -169,39 +199,52 @@ def main(argv):
     # ------------------------------------------------------------
     # 3) Real CIFAR => feed into multiple FID accumulators
     # ------------------------------------------------------------
-    # Times at which to evaluate FID
-    times_to_sample = [0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 2.75, 3.0, 3.25, 3.5, 3.75, 4.0, 4.25, 4.50, 4.75, 5.0, 5.25, 5.5]
-    times_to_sample = sorted(times_to_sample)
+    times_to_sample = [0.75, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9,
+                       2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9,
+                       3.0, 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9, 4.0]
 
-    # Create a separate FID object for each time
     fid_dict = {}
     for t_val in times_to_sample:
         fid_dict[t_val] = FrechetInceptionDistance(feature=2048).to(device)
 
-    # Add real images to each FID aggregator
-    logging.info("Feeding real CIFAR images to all FID accumulators...")
-    test_loader = get_cifar10_test_loader(root="./data", batch_size=64)
-    for real_imgs, _ in tqdm(test_loader, leave=False):
+    if rank == 0:
+        logging.info("[Rank 0] Updating FID with real images...")
+
+    train_loader = get_cifar10_train_loader(
+        batch_size=FLAGS.batch_size,
+        num_workers=FLAGS.num_workers,
+        rank=rank,
+        world_size=world_size,
+    )
+
+    for real_imgs, _ in tqdm(train_loader, desc=f"Rank {rank} Real Data", disable=(rank != 0)):
         real_imgs = real_imgs.to(device)  # in [0,1]
         real_uint8 = (real_imgs * 255).clamp(0, 255).to(torch.uint8)
         for t_val in times_to_sample:
             fid_dict[t_val].update(real_uint8, real=True)
 
+    dist.barrier()
+
     # ------------------------------------------------------------
     # 4) Generate + feed fake images incrementally
     # ------------------------------------------------------------
-    total_gen = 50000  # or 50k if you want
-    gen_batch_size = FLAGS.batch_size
-    n_batches = (total_gen + gen_batch_size - 1) // gen_batch_size
+    total_gen_global = 50000
+    total_gen_local = total_gen_global // world_size
+    if rank < (total_gen_global % world_size):
+        total_gen_local += 1
 
-    logging.info(f"Generating {total_gen} samples, Euler–Heun, dt={FLAGS.dt_gibbs}...")
+    if rank == 0:
+        logging.info(
+            f"[Rank 0] Each rank generates ~{total_gen_local} of {total_gen_global} fakes."
+        )
 
-    with torch.no_grad():
-        for _ in tqdm(range(n_batches), desc="Generating samples", leave=False):
-            curr_bsz = min(gen_batch_size, total_gen)
-            total_gen -= curr_bsz
-            if curr_bsz <= 0:
-                break
+    n_batches = (total_gen_local + FLAGS.batch_size - 1) // FLAGS.batch_size
+
+    for _ in tqdm(range(n_batches), desc=f"Rank {rank} Generating", disable=(rank != 0)):
+        curr_bsz = min(FLAGS.batch_size, total_gen_local)
+        total_gen_local -= curr_bsz
+        if curr_bsz <= 0:
+            break
 
             # Start from standard normal in [B, 3, 32, 32]
             x = torch.randn(curr_bsz, 3, 32, 32, device=device)
@@ -220,18 +263,24 @@ def main(argv):
 
                 t_prev = t_end
 
-            if total_gen <= 0:
+            if total_gen_local <= 0:
                 break
+
+    dist.barrier()
 
     # ------------------------------------------------------------
     # 5) Compute + Print final FIDs
     # ------------------------------------------------------------
-    logging.info("Computing FID for each time...")
+    if rank == 0:
+        logging.info("[Rank 0] Computing final FIDs...")
+
     for t_val in times_to_sample:
         fid_val = fid_dict[t_val].compute()
-        logging.info(f"FID at t={t_val:.2f} => {fid_val:.4f}")
+        if rank == 0:
+            logging.info(f"FID at t={t_val:.2f} => {fid_val:.4f}")
 
-    logging.info("FID evaluation complete!")
+    dist.barrier()
+    dist.destroy_process_group()
 
 
 if __name__ == "__main__":

@@ -66,3 +66,16 @@ torchrun --nproc_per_node=8 experiments/imagenet32/train_imagenet_multigpu.py \
 ```
 The dataset path defaults to `./data/imagenet32` or can be overridden with the
 `IMAGENET32_PATH` environment variable.
+
+### ImageNet32 FID evaluation
+Evaluate the model using the multi-GPU FID script:
+```bash
+torchrun --nproc_per_node=2 experiments/imagenet32/fid_imagenet_heun_multigpu.py \
+    --resume_ckpt='/path/to/checkpoint.pt' \
+    --output_dir=./sampling_results \
+    --use_ema True \
+    --time_cutoff 0.9 \
+    --epsilon_max 0.01 \
+    --batch_size 128 \
+    --dt_gibbs 0.005
+```

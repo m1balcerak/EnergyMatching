@@ -1,4 +1,5 @@
 # EnergyMatching
+<img align="right" src="EM_2D.png" width="300" alt="Energy Matching Illustration" />
 Energy Matching unifies flow matching and energy-based models in a single time-independent scalar field, enabling efficient transport from noise to data while retaining explicit likelihood information for flexible, high-quality generation.
 
 ## Setup (CUDA)

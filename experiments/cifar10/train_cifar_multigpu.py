@@ -67,6 +67,7 @@ def forward_all(model,
                 x_real_cd,       # separate CD batch
                 lambda_cd,
                 cd_neg_clamp,
+                cd_trim_fraction,
                 n_gibbs,
                 dt_gibbs,
                 epsilon_max,
@@ -76,6 +77,8 @@ def forward_all(model,
     *DDP-wrapped* model. We have two mini-batches: one for flow,
     one for CD.
     Returns: total_loss, flow_loss, cd_loss
+    Optionally discards a fraction of highest negative energies
+    (controlled by cd_trim_fraction) when computing the CD gradient.
     """
     device = x_real_flow.device
 
@@ -122,7 +125,21 @@ def forward_all(model,
         )
 
         neg_energy = model.module.potential(x_neg, torch.ones_like(t))
-        cd_val = pos_energy.mean() - neg_energy.mean()
+
+        # Optionally use a trimmed mean for the negative energies
+        if cd_trim_fraction > 0.0:
+            B = neg_energy.size(0)
+            k = int(cd_trim_fraction * B)
+            if k > 0:
+                neg_sorted, _ = neg_energy.sort()
+                neg_trimmed = neg_sorted[: B - k]
+                neg_stat = neg_trimmed.mean()
+            else:
+                neg_stat = neg_energy.mean()
+        else:
+            neg_stat = neg_energy.mean()
+
+        cd_val = pos_energy.mean() - neg_stat
 
         cd_val_scaled = lambda_cd * cd_val
         if cd_neg_clamp > 0:
@@ -301,6 +318,7 @@ def train_loop(rank, world_size, argv):
                 x_real_cd=x_real_cd,
                 lambda_cd=FLAGS.lambda_cd,
                 cd_neg_clamp=FLAGS.cd_neg_clamp,
+                cd_trim_fraction=FLAGS.cd_trim_fraction,
                 n_gibbs=FLAGS.n_gibbs,
                 dt_gibbs=FLAGS.dt_gibbs,
                 epsilon_max=FLAGS.epsilon_max,

@@ -56,6 +56,11 @@ def define_flags():
     flags.DEFINE_float("time_cutoff", 1.0, "Flow loss decays to zero beyond t>=time_cutoff")
     flags.DEFINE_float("cd_neg_clamp", 0.002,
                        "Clamp negative total CD below -cd_neg_clamp. 0=disable clamp.")
+    flags.DEFINE_float(
+        "cd_trim_fraction",
+        0.2,
+        "Fraction of highest negative energies discarded for CD (0=disable).",
+    )
     flags.DEFINE_float("cd_loss_threshold", 10., "Threshold value for negative cd_loss at which we increase MCMC difficulty")
     flags.DEFINE_bool("split_negative", False, "If True, initialize half of the negative samples from x_real_cd, half from noise")
 

@@ -53,31 +53,19 @@ def define_flags():
     # EBM + CD
     flags.DEFINE_float("epsilon_max", 0.0, "Max step size in Gibbs sampling")
     flags.DEFINE_float("dt_gibbs", 0.01, "Step size for Gibbs sampling")
-    flags.DEFINE_integer("n_gibbs", 10, "Number of Gibbs steps")
+    flags.DEFINE_integer("n_gibbs", 0, "Number of Gibbs steps")
     flags.DEFINE_float("lambda_cd", 0., "Coefficient for contrastive divergence loss") #1e-5?
     flags.DEFINE_float("time_cutoff", 1.0, "Flow loss decays to zero beyond t>=time_cutoff")
     flags.DEFINE_float("cd_neg_clamp", 1.0,
                        "Clamp negative total CD below -cd_neg_clamp. 0=disable clamp.")
     flags.DEFINE_float(
         "cd_trim_fraction",
-        0.2,
+        0.1,
         "Fraction of highest negative energies discarded for CD (0=disable).",
     )
-    flags.DEFINE_float("cd_loss_threshold", 0.1, "Threshold value for negative cd_loss at which we increase MCMC difficulty")
     flags.DEFINE_bool("split_negative", False, "If True, initialize half of the negative samples from x_real_cd, half from noise")
 
 
-
-    # FID
-    flags.DEFINE_integer("fid_freq", 0, "FID evaluation frequency (0=disable)")
-    flags.DEFINE_list("fid_times", ["1.0", "1.1"], "T endpoints for FID computation")
-    flags.DEFINE_integer("fid_num_gen", 10000, "Number of generated images for FID")
-    flags.DEFINE_float("fid_dt", 0.01, "Step size for generation during FID")
-    flags.DEFINE_bool(
-        "compute_fid_now",
-        False,
-        "If True, compute FID at the very start of training (after loading checkpoint)."
-    )
     # Optional log dir
     flags.DEFINE_string("my_log_dir", "", "Directory for Abseil logs.")
     

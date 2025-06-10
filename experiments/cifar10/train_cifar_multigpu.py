@@ -76,9 +76,11 @@ def forward_all(model,
     Do the entire forward pass (flow + optional CD) using the
     *DDP-wrapped* model. We have two mini-batches: one for flow,
     one for CD.
-    Returns: total_loss, flow_loss, cd_loss
-    Optionally discards a fraction of highest negative energies
-    (controlled by cd_trim_fraction) when computing the CD gradient.
+
+    Returns: ``total_loss, flow_loss, cd_loss, pos_energy, neg_energy`` so
+    that the caller can log energy statistics similarly to the ImageNet
+    training script. Optionally discards a fraction of highest negative
+    energies (``cd_trim_fraction``) when computing the CD gradient.
     """
     device = x_real_flow.device
 
@@ -97,6 +99,8 @@ def forward_all(model,
     # 2) Optional CD loss (using x_real_cd)
     # ----------------------------------------------------------
     cd_loss = torch.tensor(0.0, device=device)
+    pos_energy = torch.tensor(0.0, device=device)
+    neg_energy = torch.tensor(0.0, device=device)
     if lambda_cd > 0.0:
         pos_energy = model.module.potential(x_real_cd, torch.ones_like(t))
 
@@ -150,7 +154,7 @@ def forward_all(model,
         cd_loss = cd_val_scaled
 
     total_loss = flow_loss + cd_loss
-    return total_loss, flow_loss, cd_loss
+    return total_loss, flow_loss, cd_loss, pos_energy, neg_energy
 
 
 ##############################################################################
@@ -311,7 +315,7 @@ def train_loop(rank, world_size, argv):
             x_real_cd = next(datalooper).to(device)
 
             # Forward pass (flow + optional CD) using both batches
-            total_loss, flow_loss, cd_loss = forward_all(
+            total_loss, flow_loss, cd_loss, pos_energy, neg_energy = forward_all(
                 model=net_model,
                 flow_matcher=flow_matcher,
                 x_real_flow=x_real_flow,
@@ -346,6 +350,10 @@ def train_loop(rank, world_size, argv):
                 logging.info(
                     f"[Step {step}] "
                     f"flow={flow_loss.item():.5f}, cd={cd_loss.item():.5f}, "
+                    f"pos_std={pos_energy.std().item():.5f}, "
+                    f"pos_min={pos_energy.min().item():.5f}, pos_max={pos_energy.max().item():.5f}, "
+                    f"neg_std={neg_energy.std().item():.5f}, "
+                    f"neg_min={neg_energy.min().item():.5f}, neg_max={neg_energy.max().item():.5f}, "
                     f"LR={curr_lr:.6f}, {sps:.2f} it/s"
                 )
 

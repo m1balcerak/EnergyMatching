@@ -333,20 +333,24 @@ def train_loop(rank, world_size, argv):
                 )
                 save_pos_neg_grids(real_batch, x_neg, savedir, step)
 
-                ckpt_path = os.path.join(
+                ckpt_latest = os.path.join(
                     savedir, f"{FLAGS.model}_imagenet32_weights_step_latest.pt"
                 )
-                torch.save(
-                    {
-                        "net_model": net_model.module.state_dict(),
-                        "ema_model": ema_model.state_dict(),
-                        "optim": optim.state_dict(),
-                        "sched": sched.state_dict(),
-                        "step": step,
-                    },
-                    ckpt_path
-                )
-                logging.info(f"[Rank 0] Saved checkpoint => {ckpt_path}")
+                ckpt_numbered = os.path.join(savedir, f"checkpoint_{step}.pt")
+
+                checkpoint_data = {
+                    "net_model": net_model.module.state_dict(),
+                    "ema_model": ema_model.state_dict(),
+                    "optim": optim.state_dict(),
+                    "sched": sched.state_dict(),
+                    "step": step,
+                }
+
+                torch.save(checkpoint_data, ckpt_latest)
+                torch.save(checkpoint_data, ckpt_numbered)
+
+                logging.info(f"[Rank 0] Saved checkpoint => {ckpt_latest}")
+                logging.info(f"[Rank 0] Saved checkpoint => {ckpt_numbered}")
 
     dist.barrier()
     dist.destroy_process_group()

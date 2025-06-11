@@ -90,3 +90,16 @@ Run the local intrinsic dimension experiment with:
 ```bash
 python experiments/cifar10/lid_cifar.py --chunk_size 64 --resume_ckpt=/path/to/checkpoint.pt --output_dir results_lid_merged --num_samples_test 64 --num_samples_select 64 "$@"
 ```
+
+## Citation
+
+If you find our work useful, please consider citing:
+
+```bibtex
+@article{balcerak2025energy,
+  title={Energy Matching: Unifying Flow Matching and Energy-Based Models for Generative Modeling},
+  author={Balcerak, Michal and Amiranashvili, Tamaz and Terpin, Antonio and Shit, Suprosanna and Bogensperger, Lea and Kaltenbach, Sebastian and Koumoutsakos, Petros and Menze, Bjoern},
+  journal={arXiv preprint arXiv:2504.10612},
+  year={2025}
+}
+```

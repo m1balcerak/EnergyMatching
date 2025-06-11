@@ -56,7 +56,7 @@ def define_flags():
     flags.DEFINE_integer("n_gibbs", 0, "Number of Gibbs steps")
     flags.DEFINE_float("lambda_cd", 0., "Coefficient for contrastive divergence loss") #1e-5?
     flags.DEFINE_float("time_cutoff", 1.0, "Flow loss decays to zero beyond t>=time_cutoff")
-    flags.DEFINE_float("cd_neg_clamp", 1.0,
+    flags.DEFINE_float("cd_neg_clamp", 0.02,
                        "Clamp negative total CD below -cd_neg_clamp. 0=disable clamp.")
     flags.DEFINE_float(
         "cd_trim_fraction",

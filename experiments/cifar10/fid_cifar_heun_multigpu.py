@@ -99,16 +99,15 @@ def solve_sde_heun(model, x, t_start, t_end, dt=0.01):
 
     class FlattenSDE(torchsde.SDEStratonovich):
         def __init__(self, net):
-            # ---- The important fix: pass the noise_type here. ----
             super().__init__(noise_type="diagonal")
-            # If your torchsde requires sde_type as well, do:
-            # super().__init__(sde_type="stratonovich", noise_type="diagonal")
             self.net = net
 
         def f(self, t, y):
             # Drift
             y_unflat = y.view(*orig_shape)
-            v = self.net(t.unsqueeze(0), y_unflat)
+            # Ensure time tensor is on the same device and has a batch dimension
+            t_batch = t.expand(B).to(y.device)
+            v = self.net(t_batch, y_unflat)
             return v.view(B, -1)
 
         def g(self, t, y):
@@ -118,7 +117,7 @@ def solve_sde_heun(model, x, t_start, t_end, dt=0.01):
                 return torch.zeros_like(y)
             e_tensor = torch.tensor(e_val, device=y.device, dtype=y.dtype)
             scale = torch.sqrt(2.0 * e_tensor)
-            return scale * torch.ones_like(y)
+            return scale.expand_as(y) # Use expand_as for robustness
 
     sde = FlattenSDE(model)
     ts = torch.arange(t_start, t_end + 1e-9, dt, device=x.device)
@@ -158,6 +157,7 @@ def main(argv):
         savedir = None
         logging.set_verbosity(logging.ERROR)
 
+    # Add a barrier to ensure the output directory is created before proceeding
     dist.barrier()
 
     # ------------------------------------------------------------
@@ -199,9 +199,7 @@ def main(argv):
     # ------------------------------------------------------------
     # 3) Real CIFAR => feed into multiple FID accumulators
     # ------------------------------------------------------------
-    times_to_sample = [0.75, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9,
-                       2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9,
-                       3.0, 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9, 4.0]
+    times_to_sample = [1.75, 2.0, 2.25, 2.5, 2.75, 3.0, 3.25]
 
     fid_dict = {}
     for t_val in times_to_sample:
@@ -223,7 +221,7 @@ def main(argv):
         for t_val in times_to_sample:
             fid_dict[t_val].update(real_uint8, real=True)
 
-    dist.barrier()
+    dist.barrier(device_ids=[rank])
 
     # ------------------------------------------------------------
     # 4) Generate + feed fake images incrementally
@@ -239,34 +237,35 @@ def main(argv):
         )
 
     n_batches = (total_gen_local + FLAGS.batch_size - 1) // FLAGS.batch_size
+    num_generated_this_rank = 0
 
     for _ in tqdm(range(n_batches), desc=f"Rank {rank} Generating", disable=(rank != 0)):
-        curr_bsz = min(FLAGS.batch_size, total_gen_local)
-        total_gen_local -= curr_bsz
+        remaining_to_gen = total_gen_local - num_generated_this_rank
+        curr_bsz = min(FLAGS.batch_size, remaining_to_gen)
+
         if curr_bsz <= 0:
             break
 
-            # Start from standard normal in [B, 3, 32, 32]
-            x = torch.randn(curr_bsz, 3, 32, 32, device=device)
+        # Start from standard normal in [B, 3, 32, 32]
+        x = torch.randn(curr_bsz, 3, 32, 32, device=device)
 
-            t_prev = 0.0
-            for t_end in times_to_sample:
-                # Integrate from t_prev..t_end
-                x = solve_sde_heun(net_model, x, t_prev, t_end, dt=FLAGS.dt_gibbs)
+        t_prev = 0.0
+        for t_end in times_to_sample:
+            # Integrate from t_prev..t_end
+            x = solve_sde_heun(net_model, x, t_prev, t_end, dt=FLAGS.dt_gibbs)
 
-                # Convert to [0,1] for FID
-                x_01 = (x + 1.0) / 2.0
-                x_uint8 = (x_01 * 255).clamp(0, 255).to(torch.uint8)
+            # Convert to [0,1] for FID
+            x_01 = (x + 1.0) / 2.0
+            x_uint8 = (x_01 * 255).clamp(0, 255).to(torch.uint8)
 
-                # Update the corresponding FID
-                fid_dict[t_end].update(x_uint8, real=False)
+            # Update the corresponding FID
+            fid_dict[t_end].update(x_uint8, real=False)
 
-                t_prev = t_end
+            t_prev = t_end
 
-            if total_gen_local <= 0:
-                break
+        num_generated_this_rank += curr_bsz
 
-    dist.barrier()
+    dist.barrier(device_ids=[rank])
 
     # ------------------------------------------------------------
     # 5) Compute + Print final FIDs
@@ -279,7 +278,7 @@ def main(argv):
         if rank == 0:
             logging.info(f"FID at t={t_val:.2f} => {fid_val:.4f}")
 
-    dist.barrier()
+    dist.barrier(device_ids=[rank])
     dist.destroy_process_group()
 
 

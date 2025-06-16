@@ -23,11 +23,31 @@ Energy Matching unifies flow matching and energy-based models in a single time-i
 ### CIFAR‑10 training and evaluation
 Initial training:
 ```bash
-torchrun --nproc_per_node=4 experiments/cifar10/train_cifar_multigpu.py --lr 8e-4 --batch_size 128 --epsilon_max 0.0 --n_gibbs 0 --lambda_cd 0. --time_cutoff 1.0 --ema_decay 0.9999 --save_step 5000
+torchrun --nproc_per_node=4 experiments/cifar10/train_cifar_multigpu.py \
+    --lr 8e-4 \
+    --batch_size 128 \
+    --epsilon_max 0.0 \
+    --n_gibbs 0 \
+    --lambda_cd 0. \
+    --time_cutoff 1.0 \
+    --ema_decay 0.9999 \
+    --save_step 5000
 ```
 Fine‑tuning with Algorithm 2 (same script):
 ```bash
-torchrun --nproc_per_node=4 experiments/cifar10/train_cifar_multigpu.py --lr 8e-4 --batch_size 64 --resume_ckpt 'path_to_pretrained' --epsilon_max 0.01 --n_gibbs 201 --lambda_cd 1e-4 --time_cutoff 0.9 --ema_decay 0.999 --save_step 100 --dt_gibbs 0.01 --cd_loss_threshold 1.0 --split_negative=True
+torchrun --nproc_per_node=4 experiments/cifar10/train_cifar_multigpu.py \
+    --lr 8e-4 \
+    --batch_size 64 \
+    --resume_ckpt 'path_to_pretrained' \
+    --epsilon_max 0.01 \
+    --n_gibbs 201 \
+    --lambda_cd 1e-4 \
+    --time_cutoff 0.9 \
+    --ema_decay 0.999 \
+    --save_step 100 \
+    --dt_gibbs 0.01 \
+    --cd_loss_threshold 1.0 \
+    --split_negative=True
 ```
 Evaluation:
 ```bash
@@ -44,9 +64,16 @@ The dataset path defaults to `./data` or can be overridden with the
 `CIFAR10_PATH` environment variable.
 No CIFAR‑10 checkpoint is included because the file is large, so training from scratch is required or you may provide your own checkpoint.
 ### Protein inverse design
-Train the model and sample sequences with:
+Train the model with:
 ```bash
-python experiments/proteins/train_proteins_latent.py --epsilon_max 0.1 --time_cutoff 0.9 --n_gibbs 200 --dt_gibbs 0.01
+python experiments/proteins/train_proteins_latent.py \
+    --epsilon_max 0.1 \
+    --time_cutoff 0.9 \
+    --n_gibbs 200 \
+    --dt_gibbs 0.01
+```
+Conditional sampling:
+```bash
 python experiments/proteins/sampling_latent.py
 ```
 The VAE used for the continuous latent space is already provided.

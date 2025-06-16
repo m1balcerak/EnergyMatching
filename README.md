@@ -46,7 +46,7 @@ No CIFAR‑10 checkpoint is included because the file is large, so training from
 ### Protein inverse design
 Train the model and sample sequences with:
 ```bash
-python experiments/proteins/train_proteins_latent.py
+python experiments/proteins/train_proteins_latent.py --epsilon_max 0.1 --time_cutoff 0.9 --n_gibbs 200 --dt_gibbs 0.01
 python experiments/proteins/sampling_latent.py
 ```
 The VAE used for the continuous latent space is already provided.

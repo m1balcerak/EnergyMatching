@@ -213,10 +213,14 @@ def train(
     def x1_dist(n):
         return sample_moons(n).to(device)
 
+    # Determine update intervals for progress messages (every 20%)
+    interval_p1 = max(1, epochs_phase1 // 5)
+    interval_p2 = max(1, epochs_phase2 // 5)
+
     # ----------------
     # Phase 1: Flow matching
     # ----------------
-    for _ in range(epochs_phase1):
+    for i in range(epochs_phase1):
         optimizer.zero_grad()
         x0 = x0_dist(batch_size)
         x1 = x1_dist(batch_size)
@@ -227,10 +231,14 @@ def train(
         loss_flow.backward()
         optimizer.step()
 
+        if (i + 1) % interval_p1 == 0 or i == epochs_phase1 - 1:
+            pct = int((i + 1) / epochs_phase1 * 100)
+            print(f"Phase 1: {pct}% done")
+
     # ----------------
     # Phase 2: EBM + Flow
     # ----------------
-    for _ in range(epochs_phase2):
+    for i in range(epochs_phase2):
         optimizer.zero_grad()
         x0 = x0_dist(batch_size)
         x1 = x1_dist(batch_size)
@@ -276,6 +284,10 @@ def train(
         loss = flow_weight * loss_flow + ebm_weight * loss_ebm
         loss.backward()
         optimizer.step()
+
+        if (i + 1) % interval_p2 == 0 or i == epochs_phase2 - 1:
+            pct = int((i + 1) / epochs_phase2 * 100)
+            print(f"Phase 2: {pct}% done")
 
     torch.save(model.state_dict(), os.path.join(save_dir, 'final_V_model.pth'))
     return model

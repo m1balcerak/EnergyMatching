@@ -49,7 +49,7 @@ def define_flags():
     flags.DEFINE_integer("save_step", 1000, "Checkpoint save frequency (0=disable)") # 2000
     flags.DEFINE_string("resume_ckpt", "", "Path to checkpoint for resuming training") # "", EBMTime_20250408_19/EBMTime_aav_medium_weights_step_10000.pt
 
-    # EBM + CD: set epsilon_max 0.01 --n_gibbs 10 --lambda_cd 1-e4 --time_cutoff 0.9 
+    # EBM + CD:
     flags.DEFINE_float("epsilon_max", 0.1, "Max step size in Gibbs sampling") # 0.01
     flags.DEFINE_float("dt_gibbs", 0.01, "Step size for Gibbs sampling")
     flags.DEFINE_integer("n_gibbs", 200, "Number of Gibbs steps") # 150

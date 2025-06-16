@@ -180,6 +180,32 @@ def plot_trajectories_custom(traj: np.ndarray) -> None:
     plt.show()
 
 
+def load_model_from_checkpoint(
+    model_class,
+    ckpt_path: str,
+    device: torch.device
+) -> nn.Module:
+    """
+    Loads a pre-trained model from a checkpoint file.
+
+    Args:
+        model_class: The class of the model to instantiate.
+        ckpt_path: Path to the checkpoint file (.pth).
+        device: The device to load the model onto.
+
+    Returns:
+        The loaded model.
+    """
+    print(f"Loading model from checkpoint: {ckpt_path}")
+    # Instantiate the model with the same architecture used during training
+    model = model_class(dim=2, w=256).to(device)
+    state = torch.load(ckpt_path, map_location=device)
+    model.load_state_dict(state)
+    model.eval()  # Set the model to evaluation mode
+    print("Model loaded successfully.")
+    return model
+
+
 def train(
     model_class,
     *,
@@ -195,24 +221,15 @@ def train(
     tau_star: float,
     epsilon_max: float,
     use_flow_weighting: bool = False,
-    resume_ckpt: str | None = None
 ) -> nn.Module:
     """
-    Train the model with both Flow Matching and EBM terms. Optionally
+    Train the model with both OT Flow and EBM terms. Optionally
     apply time-dependent weighting to the flow loss during phase 2
     using ``use_flow_weighting``.
-
-    Provide ``resume_ckpt`` with a checkpoint path to skip training and
-    simply load the pretrained model.  ``resume_ckpt`` defaults to
-    ``None``.
     """
     os.makedirs(save_dir, exist_ok=True)
-    model = model_class(dim=2, w=128, time_varying=True).to(device)
-    if resume_ckpt is not None:
-        # Provide a checkpoint path to skip training
-        state = torch.load(resume_ckpt, map_location=device)
-        model.load_state_dict(state)
-        return model
+    model = model_class(dim=2, w=256).to(device)
+
     optimizer = optim.Adam(model.parameters(), lr=lr)
     FM = ExactOptimalTransportConditionalFlowMatcher(sigma=sigma)
 
@@ -227,9 +244,10 @@ def train(
     interval_p1 = max(1, epochs_phase1 // 5)
     interval_p2 = max(1, epochs_phase2 // 5)
 
-    # ----------------
-    # Phase 1: Flow matching
-    # ----------------
+    # --------------------------------
+    # Phase 1: OT Flow matching
+    # --------------------------------
+    print("\n--- Phase 1: OT Flow Training Begins ---")
     for i in range(epochs_phase1):
         optimizer.zero_grad()
         x0 = x0_dist(batch_size)
@@ -243,11 +261,12 @@ def train(
 
         if (i + 1) % interval_p1 == 0 or i == epochs_phase1 - 1:
             pct = int((i + 1) / epochs_phase1 * 100)
-            print(f"Phase 1: {pct}% done")
+            print(f"Phase 1: {pct}% done (Loss: {loss_flow.item():.4f})")
 
-    # ----------------
+    # --------------------------------
     # Phase 2: EBM + Flow
-    # ----------------
+    # --------------------------------
+    print("\n--- Phase 2: EBM + OT Flow Training Begins ---")
     for i in range(epochs_phase2):
         optimizer.zero_grad()
         x0 = x0_dist(batch_size)
@@ -297,7 +316,10 @@ def train(
 
         if (i + 1) % interval_p2 == 0 or i == epochs_phase2 - 1:
             pct = int((i + 1) / epochs_phase2 * 100)
-            print(f"Phase 2: {pct}% done")
+            print(f"Phase 2: {pct}% done (Total Loss: {loss.item():.4f}, Flow: {loss_flow.item():.4f}, EBM: {loss_ebm.item():.4f})")
 
-    torch.save(model.state_dict(), os.path.join(save_dir, 'final_V_model.pth'))
+    # Save the final model
+    final_model_path = os.path.join(save_dir, 'final_V_model.pth')
+    torch.save(model.state_dict(), final_model_path)
+    print(f"\nTraining complete. Model saved to {final_model_path}")
     return model

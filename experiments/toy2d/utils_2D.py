@@ -7,6 +7,29 @@ from torchcfm.conditional_flow_matching import ExactOptimalTransportConditionalF
 from torchcfm.utils import sample_8gaussians, sample_moons
 
 
+def flow_weight_schedule(t: torch.Tensor, cutoff: float) -> torch.Tensor:
+    """Optional flow weighting used during phase 2.
+
+    We decay the flow loss linearly when ``t`` exceeds ``cutoff``:
+
+    .. math::
+
+       w(t) = \begin{cases}
+           1, & t < \tau^*, \\
+           1 - \frac{t-\tau^*}{1-\tau^*}, & \tau^* \le t < 1, \\
+           0, & t \ge 1.
+       \end{cases}
+
+    This acts as an optional regularization and is disabled during phase 1.
+    """
+
+    w = torch.ones_like(t)
+    decay_region = (t >= cutoff) & (t < 1.0)
+    w[decay_region] = 1.0 - (t[decay_region] - cutoff) / (1.0 - cutoff)
+    w[t >= 1.0] = 0.0
+    return w
+
+
 def temperature(
     t: torch.Tensor,
     tau_star: float,
@@ -170,11 +193,13 @@ def train(
     sigma: float,
     save_dir: str,
     tau_star: float,
-    epsilon_max: float
+    epsilon_max: float,
+    use_flow_weighting: bool = False
 ) -> nn.Module:
     """
-    Train the model with both Flow Matching and EBM terms, using
-    user-specified tau_star and epsilon_max for the sampling portion.
+    Train the model with both Flow Matching and EBM terms. Optionally
+    apply time-dependent weighting to the flow loss during phase 2
+    using ``use_flow_weighting``.
     """
     os.makedirs(save_dir, exist_ok=True)
     model = model_class(dim=2, w=128, time_varying=True).to(device)
@@ -213,7 +238,13 @@ def train(
         # Flow portion
         t_flow, x_t_flow, u_t_flow = FM.sample_location_and_conditional_flow(x0, x1)
         v_pred_flow = velocity_training(model, x_t_flow, t_flow.unsqueeze(-1))
-        loss_flow = (v_pred_flow - u_t_flow).pow(2).mean()
+
+        flow_mse = (v_pred_flow - u_t_flow).pow(2).mean(dim=1)
+        if use_flow_weighting:
+            w_flow = flow_weight_schedule(t_flow, cutoff=tau_star)
+            loss_flow = torch.mean(w_flow * flow_mse)
+        else:
+            loss_flow = flow_mse.mean()
 
         # EBM portion
         # Evaluate energy at data

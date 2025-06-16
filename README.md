@@ -21,7 +21,7 @@ Energy Matching unifies flow matching and energy-based models in a single time-i
 - A simple 2D playground is provided in `experiments/toy2d/tutorial_2D.ipynb`.
 
 ### CIFAR‑10 training and evaluation
-Initial training:
+Initial training (warm-up, Algorithm 1):
 ```bash
 torchrun --nproc_per_node=4 experiments/cifar10/train_cifar_multigpu.py \
     --lr 8e-4 \
@@ -33,7 +33,7 @@ torchrun --nproc_per_node=4 experiments/cifar10/train_cifar_multigpu.py \
     --ema_decay 0.9999 \
     --save_step 5000
 ```
-Fine‑tuning with Algorithm 2 (same script):
+Main training with contrastive divergance (Algorithm 2):
 ```bash
 torchrun --nproc_per_node=4 experiments/cifar10/train_cifar_multigpu.py \
     --lr 8e-4 \

@@ -194,15 +194,25 @@ def train(
     save_dir: str,
     tau_star: float,
     epsilon_max: float,
-    use_flow_weighting: bool = False
+    use_flow_weighting: bool = False,
+    resume_ckpt: str | None = None
 ) -> nn.Module:
     """
     Train the model with both Flow Matching and EBM terms. Optionally
     apply time-dependent weighting to the flow loss during phase 2
     using ``use_flow_weighting``.
+
+    Provide ``resume_ckpt`` with a checkpoint path to skip training and
+    simply load the pretrained model.  ``resume_ckpt`` defaults to
+    ``None``.
     """
     os.makedirs(save_dir, exist_ok=True)
     model = model_class(dim=2, w=128, time_varying=True).to(device)
+    if resume_ckpt is not None:
+        # Provide a checkpoint path to skip training
+        state = torch.load(resume_ckpt, map_location=device)
+        model.load_state_dict(state)
+        return model
     optimizer = optim.Adam(model.parameters(), lr=lr)
     FM = ExactOptimalTransportConditionalFlowMatcher(sigma=sigma)
 

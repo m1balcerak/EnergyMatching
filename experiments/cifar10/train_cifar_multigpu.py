@@ -191,17 +191,31 @@ def train_loop(rank, world_size, argv):
     # -----------------------------------------------------------------------
     # 2) CIFAR10 dataset with distributed sampler
     # -----------------------------------------------------------------------
-    dataset = datasets.CIFAR10(
-        root="./data",
-        train=True,
-        download=(rank == 0),
-        transform=transforms.Compose([
-            transforms.RandomHorizontalFlip(),
-            transforms.ToTensor(),
-            transforms.Normalize((0.5,0.5,0.5),(0.5,0.5,0.5))
-        ])
-    )
-    dist.barrier()  # ensure download is done
+    data_root = os.environ.get("CIFAR10_PATH", "./data")
+    if rank == 0:
+        dataset = datasets.CIFAR10(
+            root=data_root,
+            train=True,
+            download=True,
+            transform=transforms.Compose([
+                transforms.RandomHorizontalFlip(),
+                transforms.ToTensor(),
+                transforms.Normalize((0.5,0.5,0.5),(0.5,0.5,0.5))
+            ])
+        )
+        dist.barrier()  # allow other ranks to see the downloaded data
+    else:
+        dist.barrier()  # wait for rank 0 to download
+        dataset = datasets.CIFAR10(
+            root=data_root,
+            train=True,
+            download=False,
+            transform=transforms.Compose([
+                transforms.RandomHorizontalFlip(),
+                transforms.ToTensor(),
+                transforms.Normalize((0.5,0.5,0.5),(0.5,0.5,0.5))
+            ])
+        )
     train_sampler = DistributedSampler(dataset, num_replicas=world_size, rank=rank, shuffle=True)
     dataloader = torch.utils.data.DataLoader(
         dataset,

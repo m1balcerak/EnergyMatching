@@ -7,9 +7,6 @@ torchcfm
 pandas
 absl-py
 torchvision
-pillow
-scipy
-joblib
 tqdm
 einops
 torchmetrics

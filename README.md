@@ -62,7 +62,8 @@ python experiments/cifar10/fid_cifar_heun_1gpu.py \
 ```
 The dataset path defaults to `./data` or can be overridden with the
 `CIFAR10_PATH` environment variable.
-No CIFAR‑10 checkpoint is included because the file is large, so training from scratch is required or you may provide your own checkpoint.
+Pretrained CIFAR-10 checkpoints are available at [Hugging Face](https://huggingface.co/m1balcerak/energy_matching_cifar10).
+Use `cifar10_warm_up_145000.pt` for the warm-up phase and `cifar10_main_training_147000.pt` after the main training. The latter obtains a FID of 3.35 when sampling with `T=3.25`.
 ### Protein inverse design
 Train the model with:
 ```bash

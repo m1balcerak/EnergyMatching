@@ -27,7 +27,7 @@ Use `cifar10_warm_up_145000.pt` for the warm-up phase and `cifar10_main_training
 ### CIFAR‑10 Training and Evaluation
 
 <p align="center">
-  <strong>Langevin Monte Carlo (unconditional). <br> Trajectory from T = 0 to T = 4 (FID = 3.3)</strong><br>
+  <strong>Langevin Monte Carlo (unconditional) <br> Trajectory from T = 0 to T = 4 (FID = 3.3)</strong><br>
   <img src="media/cifar10_FID_3_3.gif" width="60%" alt="Trajectory Animation">
 </p>
 

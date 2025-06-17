@@ -1,9 +1,13 @@
 # Energy Matching
-<img align="right" src="EM_2D.png" width="300" alt="Energy Matching Illustration" />
+<img align="right" src="media/EM_2D.png" width="300" alt="Energy Matching Illustration" />
 
 Energy Matching unifies flow matching and energy-based models in a single time-independent scalar field, enabling efficient transport between the source and target distributions while retaining explicit likelihood information for flexible, high-quality generation.
 
 **Version 0.1** – This is the official repository for the paper [Energy Matching](https://arxiv.org/abs/2504.10612).
+
+### Checkpoints
+Pretrained CIFAR-10 checkpoints are available at [Hugging Face](https://huggingface.co/m1balcerak/energy_matching_cifar10).
+Use `cifar10_warm_up_145000.pt` for the warm-up phase and `cifar10_main_training_147000.pt` after the main training. The latter reaches a best FID of **3.3** around `T=3.25`.
 
 ### Setup (CUDA)
 1. Create and activate a Python environment (conda example):
@@ -21,6 +25,9 @@ Energy Matching unifies flow matching and energy-based models in a single time-i
 - A simple 2D playground is provided in `experiments/toy2d/tutorial_2D.ipynb`.
 
 ### CIFAR‑10 training and evaluation
+#### Trajectory from T=0 to T=4 (FID=3.3)
+<video src="media/cifar10_FID_3_3.mp4" width="100%" autoplay loop muted></video>
+
 Initial training (warm-up, Algorithm 1):
 ```bash
 torchrun --nproc_per_node=4 experiments/cifar10/train_cifar_multigpu.py \
@@ -64,7 +71,7 @@ python experiments/cifar10/fid_cifar_heun_1gpu.py \
     --dt_gibbs 0.01
 ```
 Pretrained CIFAR-10 checkpoints are available at [Hugging Face](https://huggingface.co/m1balcerak/energy_matching_cifar10).
-Use `cifar10_warm_up_145000.pt` for the warm-up phase and `cifar10_main_training_147000.pt` after the main training. The latter obtains an **FID of 3.35** at around `T=3.25`.
+Use `cifar10_warm_up_145000.pt` for the warm-up phase and `cifar10_main_training_147000.pt` after the main training. The latter obtains an **FID of 3.3** at around `T=3.25`.
 ### Protein inverse design
 Train the model with:
 ```bash

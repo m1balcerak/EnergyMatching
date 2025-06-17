@@ -7,7 +7,7 @@ Energy Matching unifies flow matching and energy-based models in a single time-i
 
 ### Checkpoints
 Pretrained CIFAR-10 checkpoints are available at [Hugging Face](https://huggingface.co/m1balcerak/energy_matching_cifar10).
-Use `cifar10_warm_up_145000.pt` for the warm-up phase and `cifar10_main_training_147000.pt` after the main training. The latter reaches a best FID of **3.3** around `T=3.25`.
+Use `cifar10_warm_up_145000.pt` for the warm-up phase and `cifar10_main_training_147000.pt` after the main training. The latter reaches FID of **3.3** around `T=3.25`.
 
 ### Setup (CUDA)
 1. Create and activate a Python environment (conda example):

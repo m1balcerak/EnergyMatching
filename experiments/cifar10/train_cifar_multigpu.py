@@ -167,8 +167,8 @@ def train_loop(rank, world_size, argv):
     # -----------------------------------------------------------------------
     # 0) Init distributed
     # -----------------------------------------------------------------------
-    dist.init_process_group(backend="nccl", rank=rank, world_size=world_size)
     torch.cuda.set_device(rank)
+    dist.init_process_group(backend="nccl", rank=rank, world_size=world_size)
     device = torch.device(f"cuda:{rank}")
 
     # -----------------------------------------------------------------------
@@ -421,8 +421,8 @@ def train_loop(rank, world_size, argv):
 
 
 def main(argv):
-    world_size = torch.cuda.device_count()
-    rank = int(os.environ.get("RANK", 0))  # or local_rank
+    world_size = int(os.environ.get("WORLD_SIZE", torch.cuda.device_count()))
+    rank = int(os.environ.get("RANK", 0))
     train_loop(rank, world_size, argv)
 
 

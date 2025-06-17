@@ -6,7 +6,7 @@ Energy Matching unifies flow matching and energy-based models in a single time-i
 **Version 0.1** – This is the official repository for the paper [Energy Matching](https://arxiv.org/abs/2504.10612).
 
 ### Checkpoints
-Pretrained CIFAR-10 checkpoints are available at [Hugging Face](https://huggingface.co/m1balcerak/energy_matching_cifar10).
+Pretrained CIFAR-10 checkpoints are available at [Hugging Face](https://huggingface.co/m1balcerak/energy_matching).
 Use `cifar10_warm_up_145000.pt` for the warm-up phase and `cifar10_main_training_147000.pt` after the main training. The latter reaches FID of **3.3** around `T=3.25`.
 
 ### Setup (CUDA)

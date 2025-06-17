@@ -24,7 +24,7 @@ Energy Matching unifies flow matching and energy-based models in a single time-i
 Initial training (warm-up, Algorithm 1):
 ```bash
 torchrun --nproc_per_node=4 experiments/cifar10/train_cifar_multigpu.py \
-    --lr 8e-4 \
+    --lr 1.2e-3 \
     --batch_size 128 \
     --epsilon_max 0.0 \
     --total_steps 145000 \
@@ -37,19 +37,20 @@ torchrun --nproc_per_node=4 experiments/cifar10/train_cifar_multigpu.py \
 Main training with contrastive divergance (Algorithm 2):
 ```bash
 torchrun --nproc_per_node=4 experiments/cifar10/train_cifar_multigpu.py \
-    --lr 8e-4 \
-    --batch_size 64 \
+    --lr 1.2e-3 \
+    --batch_size 128 \
     --resume_ckpt /PATH/TO/warm_up_checkpoint.pt \
     --total_steps 147000 \
     --epsilon_max 0.01 \
-    --n_gibbs 201 \
-    --lambda_cd 1e-4 \
-    --time_cutoff 0.9 \
-    --ema_decay 0.999 \
+    --n_gibbs 200 \
+    --lambda_cd 1e-3 \
+    --time_cutoff 1.0 \
+    --ema_decay 0.99 \
     --save_step 100 \
     --dt_gibbs 0.01 \
-    --cd_loss_threshold 1.0 \
-    --split_negative=True
+    --cd_neg_clamp 0.02  \
+    --split_negative=True \
+    --save_step 100
 ```
 Evaluation across trajectories at times `T=1.0` to `T=5.0`:
 ```bash

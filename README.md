@@ -27,6 +27,7 @@ torchrun --nproc_per_node=4 experiments/cifar10/train_cifar_multigpu.py \
     --lr 8e-4 \
     --batch_size 128 \
     --epsilon_max 0.0 \
+    --total_steps 145000 \
     --n_gibbs 0 \
     --lambda_cd 0. \
     --time_cutoff 1.0 \
@@ -38,7 +39,8 @@ Main training with contrastive divergance (Algorithm 2):
 torchrun --nproc_per_node=4 experiments/cifar10/train_cifar_multigpu.py \
     --lr 8e-4 \
     --batch_size 64 \
-    --resume_ckpt 'path_to_pretrained' \
+    --resume_ckpt /PATH/TO/warm_up_checkpoint.pt \
+    --total_steps 147000 \
     --epsilon_max 0.01 \
     --n_gibbs 201 \
     --lambda_cd 1e-4 \
@@ -49,10 +51,10 @@ torchrun --nproc_per_node=4 experiments/cifar10/train_cifar_multigpu.py \
     --cd_loss_threshold 1.0 \
     --split_negative=True
 ```
-Evaluation:
+Evaluation across trajectories at times `T=1.0` to `T=5.0`:
 ```bash
 python experiments/cifar10/fid_cifar_heun_1gpu.py \
-    --resume_ckpt=PATH_TO_THE_CHECKPOINT \
+    --resume_ckpt=/PATH/TO/main_training_checkpoint.pt \
     --output_dir=./sampling_results \
     --epsilon_max 0.01 \
     --time_cutoff 1.0 \
@@ -60,10 +62,8 @@ python experiments/cifar10/fid_cifar_heun_1gpu.py \
     --use_ema True \
     --dt_gibbs 0.01
 ```
-The dataset path defaults to `./data` or can be overridden with the
-`CIFAR10_PATH` environment variable.
 Pretrained CIFAR-10 checkpoints are available at [Hugging Face](https://huggingface.co/m1balcerak/energy_matching_cifar10).
-Use `cifar10_warm_up_145000.pt` for the warm-up phase and `cifar10_main_training_147000.pt` after the main training. The latter obtains a FID of 3.35 when sampling with `T=3.25`.
+Use `cifar10_warm_up_145000.pt` for the warm-up phase and `cifar10_main_training_147000.pt` after the main training. The latter obtains an **FID of 3.35** at around `T=3.25`.
 ### Protein inverse design
 Train the model with:
 ```bash

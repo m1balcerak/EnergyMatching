@@ -64,6 +64,11 @@ def define_flags():
         "Fraction of highest negative energies discarded for CD (0=disable).",
     )
     flags.DEFINE_bool("split_negative", False, "If True, initialize half of the negative samples from x_real_cd, half from noise")
+    flags.DEFINE_bool(
+        "same_temperature_scheduler",
+        True,
+        "If True, ignore at_data_mask and use the same temperature schedule for all samples",
+    )
 
 
     # Optional log dir

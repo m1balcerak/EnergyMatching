@@ -26,7 +26,7 @@ Use `cifar10_warm_up_145000.pt` for the warm-up phase and `cifar10_main_training
 
 ### CIFAR‑10 training and evaluation
 #### Trajectory from T=0 to T=4 (FID=3.3)
-<video src="media/cifar10_FID_3_3.mp4" width="100%" autoplay loop muted></video>
+![Animation](media/cifar10_FID_3_3.gif)
 
 Initial training (warm-up, Algorithm 1):
 ```bash

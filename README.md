@@ -56,7 +56,8 @@ torchrun --nproc_per_node=4 experiments/cifar10/train_cifar_multigpu.py \
     --save_step 100 \
     --dt_gibbs 0.01 \
     --cd_neg_clamp 0.02  \
-    --split_negative=True \
+    --split_negative True \
+    --same_temperature_scheduler True \
     --save_step 100
 ```
 Evaluation across trajectories at times `T=1.0` to `T=5.0`:

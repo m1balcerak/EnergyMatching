@@ -120,6 +120,9 @@ def forward_all(model,
             x_neg_init = torch.randn_like(x_real_cd)
             at_data_mask = torch.zeros(x_real_cd.size(0), dtype=torch.bool, device=device)
 
+        if FLAGS.same_temperature_scheduler:
+            at_data_mask = torch.zeros_like(at_data_mask)
+
         x_neg = gibbs_sampling_time_sweep(
             x_init=x_neg_init,
             model=model.module,

@@ -25,9 +25,9 @@ Use `cifar10_warm_up_145000.pt` for the warm-up phase and `cifar10_main_training
 - A simple 2D playground is provided in `experiments/toy2d/tutorial_2D.ipynb`.
 
 ### CIFAR‑10 training and evaluation
-#### Trajectory from T=0 to T=4 (FID=3.3)
 <p align="center">
-  <img src="media/cifar10_FID_3_3.gif" width="60%" alt="Animation">
+#### Trajectory from T=0 to T=4 (FID=3.3)
+  <img src="media/cifar10_FID_3_3.gif" width="40%" alt="Animation">
 </p>
 
 Initial training (warm-up, Algorithm 1):

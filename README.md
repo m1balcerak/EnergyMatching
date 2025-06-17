@@ -28,7 +28,7 @@ Use `cifar10_warm_up_145000.pt` for the warm-up phase and `cifar10_main_training
 
 <p align="center">
   <strong>Trajectory from T = 0 to T = 4 (FID = 3.3)</strong><br>
-  <img src="media/cifar10_FID_3_3.gif" width="40%" alt="Trajectory Animation">
+  <img src="media/cifar10_FID_3_3.gif" width="60%" alt="Trajectory Animation">
 </p>
 
 Initial training (warm-up, Algorithm 1):

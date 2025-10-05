@@ -56,24 +56,24 @@ def temperature(
     return eps
 
 
-def velocity_training(model: nn.Module, x: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+def velocity_training(model: nn.Module, x: torch.Tensor) -> torch.Tensor:
     """
-    Compute velocity for training the flow: -∇V
+    Compute velocity for training the flow: -∇V for a static potential.
     """
     x = x.detach().requires_grad_(True)
-    V = model(x, t)
+    V = model(x)
     gradV = torch.autograd.grad(V.sum(), x, create_graph=True)[0]
     return -gradV
 
 
-def velocity_inference(model: nn.Module, x: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+def velocity_inference(model: nn.Module, x: torch.Tensor) -> torch.Tensor:
     """
-    Compute velocity for inference (sampling): -∇V
+    Compute velocity for inference (sampling): -∇V for a static potential.
     """
     with torch.enable_grad():
         if not x.requires_grad:
             x = x.detach().requires_grad_(True)
-        V = model(x, t)
+        V = model(x)
         gradV = torch.autograd.grad(V.sum(), x, create_graph=False)[0]
     return -gradV
 
@@ -101,7 +101,7 @@ def gibbs_sampler(
         t_current = t_start + (1 - t_start) * alpha
 
         x.requires_grad_(True)
-        V = model(x, torch.tensor(1.0, device=device))
+        V = model(x)
         g = torch.autograd.grad(V.sum(), x, create_graph=False)[0]
 
         eps = temperature(t_current, tau_star=tau_star, epsilon_max=epsilon_max)
@@ -136,7 +136,7 @@ def simulate_piecewise_length(
 
     while cum_length < max_length:
         t_tensor = torch.tensor([t_now], dtype=x0.dtype, device=device)
-        g = velocity_inference(model, x, t_tensor)
+        g = velocity_inference(model, x)
         eps_now = temperature(t_tensor, tau_star=tau_star, epsilon_max=epsilon_max).item()
 
         if t_now < tau_star:
@@ -254,7 +254,7 @@ def train(
         x1 = x1_dist(batch_size)
 
         t_samp, x_t, u_t = FM.sample_location_and_conditional_flow(x0, x1)
-        v_pred = velocity_training(model, x_t, t_samp.unsqueeze(-1))
+        v_pred = velocity_training(model, x_t)
         loss_flow = (v_pred - u_t).pow(2).mean()
         loss_flow.backward()
         optimizer.step()
@@ -274,7 +274,7 @@ def train(
 
         # Flow portion
         t_flow, x_t_flow, u_t_flow = FM.sample_location_and_conditional_flow(x0, x1)
-        v_pred_flow = velocity_training(model, x_t_flow, t_flow.unsqueeze(-1))
+        v_pred_flow = velocity_training(model, x_t_flow)
 
         flow_mse = (v_pred_flow - u_t_flow).pow(2).mean(dim=1)
         if use_flow_weighting:
@@ -286,7 +286,7 @@ def train(
         # EBM portion
         # Evaluate energy at data
         x_data = x1_dist(batch_size)
-        Epos = model(x_data, torch.tensor(1.0, device=device)).mean()
+        Epos = model(x_data).mean()
 
         # Negative samples are generated via gibbs_sampler
         half_bs = batch_size // 2
@@ -307,7 +307,7 @@ def train(
             tau_star=tau_star,
             epsilon_max=epsilon_max
         )
-        Eneg = model(x_neg, torch.tensor(1.0, device=device)).mean()
+        Eneg = model(x_neg).mean()
 
         loss_ebm = Epos - Eneg
         loss = flow_weight * loss_flow + ebm_weight * loss_ebm

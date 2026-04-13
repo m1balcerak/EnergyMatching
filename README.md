@@ -2,7 +2,7 @@
 <img align="right" src="media/EM_2D.png" width="30%" alt="Energy Matching Illustration" />
 Energy Matching unifies flow matching and energy-based models in a single time-independent scalar field, enabling efficient transport between the source and target distributions while retaining explicit likelihood information for flexible, high-quality generation. [NeurIPS 2025]
 
-**Version 0.9** – This is the official repository for the paper [Energy Matching](https://arxiv.org/abs/2504.10612).
+**Version 1.0** – This is the official repository for the paper [Energy Matching](https://arxiv.org/abs/2504.10612).
 
 ### Checkpoints
 - **CIFAR-10** (Image → Scalar, 50M parameters): warm-up and main-training checkpoints on [Hugging Face](https://huggingface.co/m1balcerak/energy_matching) reach **FID ≈ 3.3** around `T=3.25`.

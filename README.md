@@ -160,10 +160,12 @@ The VAE used for the continuous latent space and the dataset is already provided
 If you find our work useful, please consider citing:
 
 ```bibtex
-@article{balcerak2025energy,
+@inproceedings{balcerak2025energy,
   title={Energy Matching: Unifying Flow Matching and Energy-Based Models for Generative Modeling},
   author={Balcerak, Michal and Amiranashvili, Tamaz and Terpin, Antonio and Shit, Suprosanna and Bogensperger, Lea and Kaltenbach, Sebastian and Koumoutsakos, Petros and Menze, Bjoern},
-  journal={arXiv preprint arXiv:2504.10612},
+  booktitle={Advances in Neural Information Processing Systems},
+  volume={38},
+  pages={8583--8609},
   year={2025}
 }
 ```

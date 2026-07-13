@@ -4,6 +4,10 @@ Energy Matching unifies flow matching and energy-based models in a single time-i
 
 **Version 1.0** – This is the official repository for the paper [Energy Matching](https://arxiv.org/abs/2504.10612).
 
+### Companion slides
+
+The [slides](media/EnergyMatchingTalk.pdf) offer additional motivation and intuition for [Energy Matching](https://arxiv.org/abs/2504.10612), including the gradient-flow and JKO viewpoint. They also show how these ideas extend to discrete spaces—particularly molecular graphs—in [Graph Energy Matching](https://arxiv.org/abs/2603.23398) ([GitHub](https://github.com/m1balcerak/GraphEnergyMatching)).
+
 ### Checkpoints
 - **CIFAR-10** (Image → Scalar, 50M parameters): warm-up and main-training checkpoints on [Hugging Face](https://huggingface.co/m1balcerak/energy_matching) reach **FID ≈ 3.3** around `T=3.25`.
 - **ImageNet32** (Image → Scalar, 50M parameters): warm-up and main-training checkpoints on [Hugging Face](https://huggingface.co/m1balcerak/energy_matching) reach **FID ≈ 6.6** around `T=2.50`.

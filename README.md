@@ -41,7 +41,7 @@ Initial training (warm-up, Algorithm 1):
 torchrun --nproc_per_node=4 experiments/cifar10/train_cifar_multigpu.py \
     --total_steps 145000 \
     --lr 1.2e-3 \
-    --batch_size 128 \
+    --batch_size 256 \
     --time_cutoff 1.0 \
     --epsilon_max 0.0 \
     --lambda_cd 0. \
